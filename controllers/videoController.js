@@ -1,6 +1,13 @@
 const express = require('express');
 const Video = require('../models/videoModel');
 const Playlist = require('../models/playlistModel');
+const { google } = require('googleapis');
+
+// Configurar el cliente de YouTube
+const youtube = google.youtube({
+    version: 'v3',
+    auth: process.env.YOUTUBE_API_KEY
+});
 
 /**
  * Crear un nuevo video
@@ -41,6 +48,45 @@ const videoPost = async (req, res) => {
         // Validar datos requeridos
         if (!video.name || !video.youtubeUrl) {
             return res.status(422).json({ error: 'Name and YouTube URL are required' });
+        }
+
+        // Si se proporciona solo el ID de YouTube, construir la URL completa
+        if (req.body.youtubeId && !req.body.youtubeUrl) {
+            video.youtubeUrl = `https://www.youtube.com/watch?v=${req.body.youtubeId}`;
+        }
+
+        // Opcionalmente, obtener metadatos adicionales de YouTube si solo se envía la URL
+        if (video.youtubeUrl && (!video.name || !video.description)) {
+            try {
+                // Extraer el ID del video de la URL
+                let videoId = '';
+                if (video.youtubeUrl.includes('youtube.com/watch')) {
+                    const url = new URL(video.youtubeUrl);
+                    videoId = url.searchParams.get('v');
+                } else if (video.youtubeUrl.includes('youtu.be')) {
+                    const parts = video.youtubeUrl.split('/');
+                    videoId = parts[parts.length - 1];
+                }
+
+                if (videoId) {
+                    // Obtener información del video de YouTube
+                    const response = await youtube.videos.list({
+                        part: 'snippet',
+                        id: videoId
+                    });
+
+                    if (response.data.items.length > 0) {
+                        const videoInfo = response.data.items[0].snippet;
+                        
+                        // Usar la información de YouTube si no se proporcionó
+                        if (!video.name) video.name = videoInfo.title;
+                        if (!video.description) video.description = videoInfo.description || '';
+                    }
+                }
+            } catch (youtubeError) {
+                console.error('Error obteniendo información de YouTube:', youtubeError);
+                // Continuar el proceso aunque falle la obtención de datos de YouTube
+            }
         }
 
         // Guardar en la base de datos
@@ -211,6 +257,11 @@ const videoPatch = async (req, res) => {
         if (req.body.name) video.name = req.body.name;
         if (req.body.youtubeUrl) video.youtubeUrl = req.body.youtubeUrl;
         if (req.body.description !== undefined) video.description = req.body.description;
+        
+        // Si se proporciona un ID de YouTube, construir la URL completa
+        if (req.body.youtubeId) {
+            video.youtubeUrl = `https://www.youtube.com/watch?v=${req.body.youtubeId}`;
+        }
         
         // Si se proporciona un nuevo playlistId, verificar que existe y pertenece al usuario
         if (req.body.playlistId) {
