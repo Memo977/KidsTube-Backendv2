@@ -18,6 +18,7 @@ const restrictedUserRoutes = require('./routes/restrictedUserRoutes');
 const playlistRoutes = require('./routes/playlistRoutes');
 const videoRoutes = require('./routes/videoRoutes');
 const publicRoutes = require('./routes/publicRoutes');
+const youtubeRoutes = require('./routes/youtubeRoutes'); // Nueva importación
 
 // Inicializar la aplicación
 const app = express();
@@ -45,6 +46,7 @@ app.use('/api/admin', authenticate);
 app.use('/api/admin/restricted_users', restrictedUserRoutes);  
 app.use('/api/admin/playlists', playlistRoutes);              
 app.use('/api/admin/videos', videoRoutes);                    
+app.use('/api/youtube', authenticate, youtubeRoutes);  // Nueva ruta para YouTube API
 
 // Rutas protegidas por PIN (accesibles para perfiles de niños)
 app.use('/api/restricted/playlists', authenticateRestrictedUser, playlistRoutes);  
