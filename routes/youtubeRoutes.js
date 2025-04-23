@@ -3,7 +3,7 @@ const router = express.Router();
 const { 
     searchVideos, 
     getVideoInfo 
-} = require('../controllers/youtubeController');
+} = require('../services/youtubeService');
 
 /**
  * Buscar videos en YouTube
