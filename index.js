@@ -35,7 +35,8 @@ app.use(bodyParser.json());
 connectDatabase();
 
 // Rutas públicas (no requieren autenticación)
-app.use('/api/session', authRoutes);         
+app.use('/api/session', authRoutes); 
+app.use('/api/session/verify', authRoutes);        
 app.use('/api/users', userRoutes);           
 app.use('/api/public', publicRoutes);        
 
