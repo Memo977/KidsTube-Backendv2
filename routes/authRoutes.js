@@ -1,4 +1,3 @@
-// routes/authRoutes.js
 const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcrypt');
@@ -123,7 +122,11 @@ router.post("/verify", async (req, res) => {
     // Guardar información de sesión
     await saveSession(user.email);
     
-    return res.status(201).json({ token });
+    // CAMBIO: Incluir el PIN en la respuesta
+    return res.status(201).json({ 
+      token,
+      pin: user.pin // Añadir el PIN a la respuesta
+    });
   } catch (err) {
     console.log('Error during verification:', err);
     
