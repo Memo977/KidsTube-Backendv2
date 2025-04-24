@@ -4,14 +4,10 @@ const app = express();
 const path = require('path');
 const bcrypt = require('bcrypt');
 const saltRounds = 10;
-app.use(express.static(path.join(__dirname, 'public')));
 const User = require("../models/userModel");
 const Restricted_users = require("../models/restricted_usersModel");
 const { deleteSession } = require('./sessionController');
-const GMAIL_USER = process.env.GMAIL_USER;
-const GMAIL_PASS = process.env.GMAIL_PASS;
-
-const nodemailer = require('nodemailer');
+const { sendConfirmationEmail } = require('../services/mailerSendService');
 
 // Verifica si el usuario tiene al menos 18 años
 const isAtLeast18YearsOld = (birthdate) => {
@@ -27,34 +23,6 @@ const isAtLeast18YearsOld = (birthdate) => {
   }
   
   return age >= 18;
-};
-
-// Configura el transporte con SMTP de Gmail
-const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    user: GMAIL_USER,
-    pass: GMAIL_PASS
-  }
-});
-
-// Envía el correo de confirmación al usuario registrado
-const sendConfirmationEmail = (user) => {
-  const confirmationUrl = `http://localhost:3000/api/users/confirm?id=${user._id}&register=true`;
-  const mailOptions = {
-    from: GMAIL_USER,
-    to: user.email,
-    subject: 'Confirm your email',
-    html: `<p>Thank you for registering. Please confirm your email by clicking the link below:</p><p><a href="${confirmationUrl}">Confirm Email</a></p>`
-  };
-
-  transporter.sendMail(mailOptions, (error, info) => {
-    if (error) {
-      console.log('Error sending email:', error);
-    } else {
-      console.log('Email sent:', info.response);
-    }
-  });
 };
 
 /**
@@ -108,7 +76,13 @@ const userPost = async (req, res) => {
       const savedUser = await user.save();
       
       if (savedUser.state === false) {
-        sendConfirmationEmail(savedUser);
+        try {
+          await sendConfirmationEmail(savedUser);
+          console.log('Confirmation email sent to:', savedUser.email);
+        } catch (emailError) {
+          console.error('Error sending confirmation email:', emailError);
+          // Continuamos con el proceso aunque falle el envío del email
+        }
       }
       
       res.status(201).header({
@@ -161,28 +135,33 @@ const userGetEmail = function (email) {
   return User.findOne({ email });
 };
 
-// Confirma el email del usuario
+// Confirma el email del usuario - Ahora solo actualiza el estado y retorna JSON
 const confirmEmail = async (req, res) => {
   const { id } = req.query;
   
   if (!id) {
-      return res.status(400).json({ error: "ID parameter is required" });
+    return res.status(400).json({ error: "ID parameter is required" });
   }
 
   try {
-      const user = await User.findById(id);
+    const user = await User.findById(id);
 
-      if (!user) {
-          return res.status(404).json({ error: "User doesn't exist" });
-      }
+    if (!user) {
+      return res.status(404).json({ error: "User doesn't exist" });
+    }
 
-      user.state = true;
-      await user.save();
-      return res.status(200).sendFile(path.join(__dirname, 'views', 'confirmation.html'));
+    user.state = true;
+    await user.save();
+    
+    // Devolver una respuesta JSON en lugar de HTML
+    return res.status(200).json({ 
+      success: true, 
+      message: "Email verified successfully" 
+    });
 
   } catch (err) {
-      console.log('Error while confirming the email', err);
-      return res.status(500).json({ error: 'Internal server error' });
+    console.log('Error while confirming the email', err);
+    return res.status(500).json({ error: 'Internal server error' });
   }
 };
 
