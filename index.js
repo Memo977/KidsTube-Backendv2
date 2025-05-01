@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
+const passport = require('./config/passport');  // Importar passport configurado
 
 // Configuración de la base de datos
 const connectDatabase = require('./config/database');
@@ -18,7 +19,8 @@ const restrictedUserRoutes = require('./routes/restrictedUserRoutes');
 const playlistRoutes = require('./routes/playlistRoutes');
 const videoRoutes = require('./routes/videoRoutes');
 const publicRoutes = require('./routes/publicRoutes');
-const youtubeRoutes = require('./routes/youtubeRoutes'); // Nueva importación
+const youtubeRoutes = require('./routes/youtubeRoutes');
+const googleAuthRoutes = require('./routes/googleAuthRoutes'); // Nuevas rutas para Google Auth
 
 // Inicializar la aplicación
 const app = express();
@@ -30,6 +32,7 @@ app.use(cors({
   methods: "*"
 }));
 app.use(bodyParser.json());
+app.use(passport.initialize());  // Inicializar Passport
 
 // Conectar a la base de datos
 connectDatabase();
@@ -39,6 +42,7 @@ app.use('/api/session', authRoutes);
 app.use('/api/session/verify', authRoutes);        
 app.use('/api/users', userRoutes);           
 app.use('/api/public', publicRoutes);        
+app.use('/api/auth', googleAuthRoutes);  // Nuevas rutas de autenticación con Google
 
 // Middleware de autenticación para las rutas protegidas del admin
 app.use('/api/admin', authenticate);
@@ -47,7 +51,7 @@ app.use('/api/admin', authenticate);
 app.use('/api/admin/restricted_users', restrictedUserRoutes);  
 app.use('/api/admin/playlists', playlistRoutes);              
 app.use('/api/admin/videos', videoRoutes);                    
-app.use('/api/youtube', authenticate, youtubeRoutes);  // Nueva ruta para YouTube API
+app.use('/api/youtube', authenticate, youtubeRoutes);  
 
 // Rutas protegidas por PIN (accesibles para perfiles de niños)
 app.use('/api/restricted/playlists', authenticateRestrictedUser, playlistRoutes);  
