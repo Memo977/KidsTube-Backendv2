@@ -83,8 +83,8 @@ Esta API REST proporciona funcionalidades para la gestión de usuarios, sesiones
 
 1. Clonar el repositorio
    ```
-   git clone <url-del-repositorio>
-   cd kidstube-api
+   git clone https://github.com/Memo977/KidsTube-Backendv2.git
+   cd KidsTube-Backendv2
    ```
 
 2. Instalar dependencias
@@ -208,14 +208,6 @@ Para facilitar las pruebas de la API, se incluyen archivos de configuración par
 4. Crea una playlist y asígnala al perfil (Playlists > Crear Playlist)
 5. Añade videos a la playlist (Videos > Agregar Video a Playlist)
 6. Prueba el acceso con PIN (Acceso Perfiles Restringidos > Verificar PIN de Perfil)
-
-## Buenas Prácticas de Seguridad
-
-- **No guardar credenciales en el código**: Todas las claves de API, secretos y credenciales deben almacenarse en variables de entorno.
-- **Sanitización de entradas**: Validación de todos los datos recibidos para prevenir inyecciones.
-- **Rate limiting**: Implementar limitación de solicitudes para prevenir abusos.
-- **HTTPS**: En producción, configurar la API para que solo sea accesible mediante HTTPS.
-- **Logs de seguridad**: Mantener registros de intentos de autenticación y acciones sensibles.
 
 ## Contribución
 
