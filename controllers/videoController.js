@@ -11,8 +11,8 @@ const youtube = google.youtube({
 
 /**
  * Crear un nuevo video
- * @param {*} req 
- * @param {*} res 
+ * @param {*} req - Objeto de solicitud
+ * @param {*} res - Objeto de respuesta
  */
 const videoPost = async (req, res) => {
     try {
@@ -109,8 +109,8 @@ const videoPost = async (req, res) => {
 
 /**
  * Obtener todos los videos o uno específico
- * @param {*} req 
- * @param {*} res 
+ * @param {*} req - Objeto de solicitud
+ * @param {*} res - Objeto de respuesta
  */
 const videoGet = async (req, res) => {
     try {
@@ -228,8 +228,8 @@ const videoGet = async (req, res) => {
 
 /**
  * Actualizar un video
- * @param {*} req 
- * @param {*} res 
+ * @param {*} req - Objeto de solicitud
+ * @param {*} res - Objeto de respuesta
  */
 const videoPatch = async (req, res) => {
     try {
@@ -299,8 +299,8 @@ const videoPatch = async (req, res) => {
 
 /**
  * Eliminar un video
- * @param {*} req 
- * @param {*} res 
+ * @param {*} req - Objeto de solicitud
+ * @param {*} res - Objeto de respuesta
  */
 const videoDelete = async (req, res) => {
     try {

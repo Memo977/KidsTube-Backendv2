@@ -1,18 +1,16 @@
-// services/mailersendService.js
 const { MailerSend, EmailParams, Recipient, Sender } = require('mailersend');
 require('dotenv').config();
 
-const DOMAIN = process.env.MAILERSEND_DOMAIN || 'test-3m5jgroor2dgdpyo.mlsender.net';
+const DOMAIN = process.env.MAILERSEND_DOMAIN;
 const API_KEY = process.env.MAILERSEND_API_KEY;
-// URL base para el frontend (Live Server)
-const FRONTEND_URL = process.env.FRONTEND_URL || 'http://127.0.0.1:5500';
+const FRONTEND_URL = process.env.FRONTEND_URL;
 
 // Verificar que tenemos la clave API
 if (!API_KEY) {
   console.error('ERROR: MAILERSEND_API_KEY no está definida en el archivo .env');
 }
 
-// Instancia del cliente MailerSend con manejo de errores mejorado
+// Instancia del cliente MailerSend
 const mailersend = new MailerSend({
   apiKey: API_KEY,
 });
@@ -29,7 +27,7 @@ const sendConfirmationEmail = async (user) => {
     
     // Crear remitente con el dominio verificado
     const sender = new Sender(
-      `no-reply@${DOMAIN}`, // Asegúrate de que este dominio esté verificado en MailerSend
+      `no-reply@${DOMAIN}`,
       'KidsTube Verification'
     );
     
@@ -64,16 +62,9 @@ const sendConfirmationEmail = async (user) => {
       .setText("Gracias por registrarte en KidsTube. Para completar tu registro, por favor visita el siguiente enlace: " + confirmationUrl);
     
     // Enviar el email
-    console.log('Intentando enviar email a:', user.email);
-    console.log('Usando URL de frontend:', confirmationUrl);
-    console.log('Remitente:', `no-reply@${DOMAIN}`);
-    
     const response = await mailersend.email.send(emailParams);
-    console.log('Email enviado correctamente:', response);
     return response;
   } catch (error) {
-    console.error('Error detallado al enviar email:', JSON.stringify(error, null, 2));
-    
     // Verificar problemas comunes
     if (error.statusCode === 401) {
       console.error('Error de autenticación: Verifica tu API_KEY de MailerSend');

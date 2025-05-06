@@ -64,7 +64,7 @@ router.post("/", async (req, res) => {
       });
     }
   } catch (err) {
-    console.log('Error during login:', err);
+    console.error('Error during login:', err);
     return res.status(500).json({
       error: "Internal server error: " + err.message
     });
@@ -122,13 +122,13 @@ router.post("/verify", async (req, res) => {
     // Guardar información de sesión
     await saveSession(user.email);
     
-    // CAMBIO: Incluir el PIN en la respuesta
+    // Incluir el PIN en la respuesta
     return res.status(201).json({ 
       token,
-      pin: user.pin // Añadir el PIN a la respuesta
+      pin: user.pin
     });
   } catch (err) {
-    console.log('Error during verification:', err);
+    console.error('Error during verification:', err);
     
     if (err.name === 'TokenExpiredError') {
       return res.status(401).json({
@@ -188,7 +188,7 @@ router.post("/resend-code", async (req, res) => {
     });
     
   } catch (err) {
-    console.log('Error during code resend:', err);
+    console.error('Error during code resend:', err);
     
     if (err.name === 'TokenExpiredError') {
       return res.status(401).json({
@@ -221,7 +221,7 @@ router.delete("/", async (req, res) => {
     
     await blacklistToken.save();
     
-    // Opcional: Eliminar también de la tabla de sesiones
+    // Eliminar también de la tabla de sesiones
     await deleteSession(decoded.email);
     
     return res.status(200).json({ message: "Logged out successfully" });

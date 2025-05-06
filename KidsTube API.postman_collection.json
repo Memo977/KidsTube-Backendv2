@@ -3,8 +3,7 @@
 		"_postman_id": "a7089c38-6443-464a-81da-8f7b25d03722",
 		"name": "KidsTube API",
 		"description": "API para gestionar una plataforma de contenido de YouTube para niños",
-		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-		"_exporter_id": "41635577"
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
 	"item": [
 		{
@@ -65,18 +64,17 @@
 					"response": []
 				},
 				{
-					"name": "Login (Obtener Token)",
+					"name": "Login - Paso 1 (Credenciales)",
 					"event": [
 						{
 							"listen": "test",
 							"script": {
 								"exec": [
 									"var jsonData = JSON.parse(responseBody);",
-									"pm.environment.set(\"token\", jsonData.token);",
-									"console.log('Token guardado en variable de entorno: ' + jsonData.token);"
+									"pm.environment.set(\"temp_token\", jsonData.tempToken);",
+									"console.log('Token temporal guardado: ' + jsonData.tempToken);"
 								],
-								"type": "text/javascript",
-								"packages": {}
+								"type": "text/javascript"
 							}
 						}
 					],
@@ -102,7 +100,78 @@
 								"session"
 							]
 						},
-						"description": "Inicia sesión como usuario padre. Devuelve un token JWT que se debe usar en solicitudes posteriores."
+						"description": "Inicia sesión como usuario padre. Primer paso: verifica credenciales y envía código de verificación SMS."
+					},
+					"response": []
+				},
+				{
+					"name": "Login - Paso 2 (Verificación SMS)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = JSON.parse(responseBody);",
+									"pm.environment.set(\"token\", jsonData.token);",
+									"console.log('Token JWT guardado: ' + jsonData.token);"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"tempToken\": \"{{temp_token}}\",\n  \"code\": \"123456\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/session/verify",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"session",
+								"verify"
+							]
+						},
+						"description": "Segundo paso del inicio de sesión: verifica el código SMS recibido y devuelve el token JWT completo."
+					},
+					"response": []
+				},
+				{
+					"name": "Reenvío de Código SMS",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"token\": \"{{temp_token}}\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/session/resend-code",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"session",
+								"resend-code"
+							]
+						},
+						"description": "Reenvía el código de verificación SMS si el usuario no lo recibió."
 					},
 					"response": []
 				},
@@ -129,9 +198,62 @@
 						"description": "Cierra la sesión revocando el token JWT."
 					},
 					"response": []
+				},
+				{
+					"name": "Google Auth - Iniciar",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/auth/google",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"google"
+							]
+						},
+						"description": "Inicia el flujo de autenticación con Google OAuth2.0. Redirige al usuario a la página de login de Google."
+					},
+					"response": []
+				},
+				{
+					"name": "Google Auth - Completar Perfil",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"phone_number\": \"1234567890\",\n  \"pin\": \"123456\",\n  \"country\": \"México\",\n  \"birthdate\": \"1985-01-01\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/auth/complete-profile",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"complete-profile"
+							]
+						},
+						"description": "Completa el perfil de un usuario registrado mediante Google OAuth2.0. Este endpoint se utiliza después del primer login con Google."
+					},
+					"response": []
 				}
 			],
-			"description": "Endpoints para registro, login y logout."
+			"description": "Endpoints para registro, login, autenticación con Google y logout."
 		},
 		{
 			"name": "2. Perfiles Restringidos",
@@ -169,12 +291,10 @@
 							"script": {
 								"exec": [
 									"var jsonData = JSON.parse(responseBody);",
-									"console.log('Respuesta completa:', JSON.stringify(jsonData, null, 2));",
 									"pm.environment.set(\"restricted_user_id\", jsonData._id);",
 									"console.log('ID de perfil restringido guardado: ' + jsonData._id);"
 								],
-								"type": "text/javascript",
-								"packages": {}
+								"type": "text/javascript"
 							}
 						}
 					],
@@ -349,12 +469,10 @@
 							"script": {
 								"exec": [
 									"var jsonData = JSON.parse(responseBody);",
-									"console.log('Respuesta completa:', JSON.stringify(jsonData, null, 2));",
 									"pm.environment.set(\"playlist_id\", jsonData._id);",
 									"console.log('ID de playlist guardado: ' + jsonData._id);"
 								],
-								"type": "text/javascript",
-								"packages": {}
+								"type": "text/javascript"
 							}
 						}
 					],
@@ -535,12 +653,10 @@
 							"script": {
 								"exec": [
 									"var jsonData = JSON.parse(responseBody);",
-									"console.log('Respuesta completa:', JSON.stringify(jsonData, null, 2));",
 									"pm.environment.set(\"video_id\", jsonData._id);",
 									"console.log('ID de video guardado: ' + jsonData._id);"
 								],
-								"type": "text/javascript",
-								"packages": {}
+								"type": "text/javascript"
 							}
 						}
 					],
@@ -717,7 +833,12 @@
 					"name": "Listar Perfiles (Pantalla Inicial)",
 					"request": {
 						"method": "GET",
-						"header": [],
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
 						"url": {
 							"raw": "{{base_url}}/api/public/profiles",
 							"host": [
@@ -744,14 +865,17 @@
 									"pm.environment.set(\"profile_pin\", requestBody.pin);",
 									"console.log('PIN guardado: ' + requestBody.pin);"
 								],
-								"type": "text/javascript",
-								"packages": {}
+								"type": "text/javascript"
 							}
 						}
 					],
 					"request": {
 						"method": "POST",
 						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
 							{
 								"key": "Content-Type",
 								"value": "application/json"
@@ -784,6 +908,10 @@
 							{
 								"key": "x-restricted-pin",
 								"value": "{{profile_pin}}"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
 							}
 						],
 						"url": {
@@ -809,6 +937,10 @@
 							{
 								"key": "x-restricted-pin",
 								"value": "{{profile_pin}}"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
 							}
 						],
 						"url": {
@@ -840,6 +972,10 @@
 							{
 								"key": "x-restricted-pin",
 								"value": "{{profile_pin}}"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
 							}
 						],
 						"url": {
@@ -865,6 +1001,74 @@
 				}
 			],
 			"description": "Endpoints para el acceso de perfiles restringidos (niños)."
+		},
+		{
+			"name": "6. Buscar en YouTube",
+			"item": [
+				{
+					"name": "Buscar Videos en YouTube",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/youtube/search?q=videos educativos para niños",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"youtube",
+								"search"
+							],
+							"query": [
+								{
+									"key": "q",
+									"value": "videos educativos para niños"
+								}
+							]
+						},
+						"description": "Busca videos en YouTube que puedan ser añadidos a las playlists."
+					},
+					"response": []
+				},
+				{
+					"name": "Obtener Info de Video YouTube",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/youtube/info?url=https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"youtube",
+								"info"
+							],
+							"query": [
+								{
+									"key": "url",
+									"value": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+								}
+							]
+						},
+						"description": "Obtiene información detallada de un video de YouTube mediante su URL."
+					},
+					"response": []
+				}
+			],
+			"description": "Endpoints para buscar y obtener información de videos en YouTube."
 		}
 	],
 	"event": [

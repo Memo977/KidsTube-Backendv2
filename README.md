@@ -1,18 +1,20 @@
-# API de YoutubeKids - Documentación
+# API de KidsTube - Documentación
 
 ## Descripción
 Esta API REST proporciona funcionalidades para la gestión de usuarios, sesiones, perfiles restringidos, playlists y videos para una plataforma de streaming infantil, con énfasis en la seguridad y mejores prácticas modernas.
 
 ## Características principales
 - Autenticación y autorización con JWT y sistema de revocación de tokens
+- Autenticación con Google OAuth 2.0
+- Verificación en dos factores con códigos SMS (Twilio)
 - Registro de usuarios con confirmación por correo electrónico
 - Hash seguro de contraseñas con bcrypt
 - Creación de perfiles restringidos por PIN
 - Sistema de playlists y videos asociados a perfiles
 - Validación de permisos basada en roles
-- Arquitectura modular y mantenible
-- Sistema de búsqueda de videos
+- Búsqueda y obtención de información de videos de YouTube
 - Verificación de edad mínima (18 años) para registro
+- Respuestas HTTP estandarizadas con códigos adecuados
 
 ## Tecnologías utilizadas
 - Node.js
@@ -20,26 +22,30 @@ Esta API REST proporciona funcionalidades para la gestión de usuarios, sesiones
 - MongoDB con Mongoose
 - JSON Web Tokens (JWT)
 - bcrypt para hash seguro de contraseñas
-- Nodemailer para envío de correos
+- Twilio para verificación por SMS
+- MailerSend para envío de correos
+- Google OAuth 2.0 para autenticación con cuentas de Google
+- API de YouTube para búsqueda de videos
 - CORS para acceso entre dominios
 
 ## Estructura de carpetas
 ```
 /
 ├── config/
-│   └── database.js               # Configuración de conexión a la BD
+│   ├── database.js               # Configuración de conexión a la BD
+│   └── passport.js               # Configuración de Passport para Google OAuth
 │
 ├── controllers/
+│   ├── googleAuthController.js   # Lógica para autenticación con Google
 │   ├── playlistController.js     # Lógica para manejo de playlists
 │   ├── sessionController.js      # Lógica para manejo de sesiones
 │   ├── userController.js         # Lógica para manejo de usuarios
 │   ├── videoController.js        # Lógica para manejo de videos
 │   ├── restricted_usersController.js  # Lógica para perfiles restringidos
-│   └── views/
-│       └── confirmation.html     # Plantilla para confirmación de email
+│   └── youtubeController.js      # Lógica para integración con YouTube
 │
 ├── middleware/
-│   ├── authMiddleware.js         # Middleware de autenticación
+│   ├── authMiddleware.js         # Middleware de autenticación con JWT
 │   ├── restrictedUserMiddleware.js # Middleware de autenticación por PIN
 │   └── errorMiddleware.js        # Middleware para manejo de errores
 │
@@ -52,15 +58,23 @@ Esta API REST proporciona funcionalidades para la gestión de usuarios, sesiones
 │   └── videoModel.js             # Modelo para videos
 │
 ├── routes/
-│   ├── authRoutes.js             # Rutas de autenticación
+│   ├── authRoutes.js             # Rutas de autenticación con JWT
+│   ├── googleAuthRoutes.js       # Rutas de autenticación con Google
 │   ├── playlistRoutes.js         # Rutas para playlists
 │   ├── publicRoutes.js           # Rutas públicas
 │   ├── restrictedUserRoutes.js   # Rutas para perfiles restringidos
 │   ├── userRoutes.js             # Rutas para usuarios
-│   └── videoRoutes.js            # Rutas para videos
+│   ├── videoRoutes.js            # Rutas para videos
+│   └── youtubeRoutes.js          # Rutas para integración con YouTube
 │
-├── .env                          # Variables de entorno (no incluido en repositorio)
-├── .gitignore                    
+├── services/
+│   ├── googleAuthService.js      # Servicios para autenticación con Google
+│   ├── mailersendService.js      # Servicios para envío de correos
+│   ├── twilioService.js          # Servicios para verificación por SMS
+│   └── youtubeService.js         # Servicios para integración con YouTube
+│
+├── .env.template                 # Plantilla para variables de entorno (agregar)
+├── .gitignore                    # Archivos y carpetas ignorados por Git
 ├── index.js                      # Punto de entrada de la aplicación
 └── package.json                  # Dependencias y scripts
 ```
@@ -68,61 +82,109 @@ Esta API REST proporciona funcionalidades para la gestión de usuarios, sesiones
 ## Instalación
 
 1. Clonar el repositorio
-2. Ejecutar `npm install` para instalar las dependencias
-3. Crear un archivo `.env` con las siguientes variables:
    ```
-   MONGODB_URI=mongodb://localhost:27017/streaming_app
-   JWT_SECRET=mi_secreto_super_seguro
-   GMAIL_USER=tu_correo@gmail.com
-   GMAIL_PASS=tu_contraseña_app
-   PORT=3000
+   git clone <url-del-repositorio>
+   cd kidstube-api
    ```
-4. Ejecutar `npm start` para iniciar el servidor en producción
 
-## Seguridad mejorada
+2. Instalar dependencias
+   ```
+   npm install
+   ```
 
-- **Hash de contraseñas**: Implementación de bcrypt para almacenamiento seguro de contraseñas
-- **Revocación de tokens JWT**: Sistema para invalidar tokens después del cierre de sesión
-- **Limpieza automática**: Los tokens revocados se eliminan automáticamente después de su expiración
-- **Validación robusta**: Verificación de datos de entrada y manejo consistente de errores
-- **Middleware de autenticación**: Protección centralizada de rutas sensibles
-- **Verificación de PIN**: Sistema de acceso para perfiles infantiles mediante PIN
-- **Confirmación por correo**: Verificación de cuentas mediante enlaces de activación
+3. Configurar variables de entorno
+   - Copiar el archivo `.env.template` a `.env`
+   ```
+   cp .env.template .env
+   ```
+   - Editar el archivo `.env` con tus propias credenciales y configuraciones
 
-## Patrones de diseño implementados
+4. Iniciar el servidor
+   - Para desarrollo:
+   ```
+   npm run dev
+   ```
+   - Para producción:
+   ```
+   npm start
+   ```
 
-- **MVC (Modelo-Vista-Controlador)**: Separación clara entre modelos de datos, lógica de negocio y rutas
-- **Middleware**: Uso de middleware para funcionalidades transversales
-- **Configuración centralizada**: Variables de entorno y configuración de base de datos en ubicaciones específicas
-- **Manejo de errores**: Sistema centralizado para captura y procesamiento de errores
-- **Rutas anidadas**: Estructura de rutas para APIs RESTful con distintos niveles de autenticación
+## Flujo de autenticación
 
-## Estructura de la API
+### Registro y Login Estándar
+1. **Registro**: El usuario proporciona email, contraseña y datos personales.
+2. **Verificación de Email**: Se envía un enlace de confirmación al correo.
+3. **Login**: Se validan credenciales y se envía código SMS.
+4. **Verificación SMS**: Validación del código para completar login.
+5. **Token JWT**: Se genera un token de autenticación.
 
-La API está dividida en tres grupos principales de rutas:
+### Autenticación con Google
+1. **Inicio de OAuth**: El usuario inicia el flujo de autenticación con Google.
+2. **Callback de Google**: Se reciben datos del perfil de Google.
+3. **Completar Perfil**: Si es primer acceso, se solicitan datos adicionales.
+4. **Verificación SMS**: Se valida el número de teléfono por SMS.
+5. **Token JWT**: Se genera un token de autenticación.
 
-1. **Rutas públicas**: No requieren autenticación (registro, login, confirmación email)
-2. **Rutas para administradores**: Requieren autenticación JWT (creación y gestión de perfiles, playlists y videos)
-3. **Rutas para perfiles restringidos**: Accesibles mediante PIN (visualización y búsqueda de contenido)
+## Manejo de perfiles restringidos (niños)
 
-## Gestión de contenido
+1. El usuario padre crea perfiles con nombre, avatar y PIN.
+2. Cada perfil puede acceder solamente a las playlists asignadas.
+3. La autenticación de perfiles usa el PIN como método de acceso.
+4. Los perfiles restringidos tienen funcionalidad limitada:
+   - Solo visualización de videos asignados
+   - Búsqueda dentro de playlists permitidas
+   - Sin capacidad de edición o creación
 
-- **Playlists**: Colecciones de videos que pueden asociarse a perfiles restringidos
-- **Videos**: Elementos con referencias a URL de YouTube, asociados a playlists
-- **Perfiles restringidos**: Cuentas para niños con acceso controlado mediante PIN
+## Autenticación y Seguridad
 
-## Funcionalidades de búsqueda
+- **Hash de contraseñas**: Implementación de bcrypt para almacenamiento seguro
+- **Verificación en dos factores**: SMS con Twilio
+- **Revocación de tokens JWT**: Sistema para invalidar tokens tras el cierre de sesión
+- **Limpieza automática**: Los tokens revocados se eliminan después de su expiración
+- **PIN de acceso**: Sistema de control parental mediante PIN numérico
+- **Verificación de edad**: Control para garantizar que los usuarios administradores son mayores de edad
 
-La API ofrece capacidades de búsqueda de videos por nombre y descripción, limitando los resultados según el perfil que realiza la búsqueda (administrador o perfil restringido).
+## Servicios externos integrados
 
-## Modelos de datos
+### Twilio
+Para la verificación en dos pasos mediante SMS.
 
-- **Usuario**: Información del adulto administrador con datos de registro y acceso
-- **Usuario restringido**: Perfil infantil con acceso limitado mediante PIN
-- **Playlist**: Colección de videos asociada a un administrador y a perfiles restringidos
-- **Video**: Elemento multimedia con referencias a YouTube
-- **Token revocado**: Almacena tokens JWT invalidados hasta su expiración
-- **Sesión**: Información sobre sesiones activas
+### MailerSend
+Para el envío de correos electrónicos de confirmación.
+
+### Google OAuth 2.0
+Para la autenticación mediante cuentas de Google.
+
+### YouTube API
+Para la búsqueda e integración de videos.
+
+## API Endpoints
+
+La API está dividida en tres grupos principales:
+
+### 1. Rutas públicas y de autenticación
+- `POST /api/users` - Registro de usuario
+- `GET /api/users/confirm` - Confirmación de email
+- `POST /api/session` - Login (primer paso)
+- `POST /api/session/verify` - Verificación de código SMS (segundo paso)
+- `DELETE /api/session` - Logout
+- `GET /api/auth/google` - Inicio de autenticación con Google
+- `GET /api/auth/google/callback` - Callback para autenticación con Google
+- `POST /api/auth/complete-profile` - Completar perfil después de autenticación con Google
+
+### 2. Rutas para administradores (requieren JWT)
+- `GET/POST/PATCH/DELETE /api/admin/restricted_users` - Gestión de perfiles restringidos
+- `GET/POST/PATCH/DELETE /api/admin/playlists` - Gestión de playlists
+- `GET/POST/PATCH/DELETE /api/admin/videos` - Gestión de videos
+- `GET /api/youtube/search` - Búsqueda de videos en YouTube
+- `GET /api/youtube/info` - Obtener información de videos de YouTube
+
+### 3. Rutas para perfiles restringidos (requieren PIN)
+- `GET /api/public/profiles` - Listar perfiles disponibles
+- `POST /api/public/verify-pin` - Verificar PIN de acceso
+- `GET /api/restricted/playlists` - Ver playlists asignadas
+- `GET /api/restricted/videos` - Ver videos de una playlist
+- `GET /api/restricted/videos?search=query` - Buscar videos permitidos
 
 ## Colección de Postman
 
@@ -138,16 +200,6 @@ Para facilitar las pruebas de la API, se incluyen archivos de configuración par
 3. Importa el entorno: `Archivo > Importar > Selecciona KidsTube API.postman_environment.json`
 4. Selecciona el entorno "KidsTube API" en el desplegable de entornos (esquina superior derecha)
 
-### Estructura de la colección
-
-La colección está organizada en 5 categorías principales:
-
-1. **Autenticación**: Registro, confirmación, login y logout
-2. **Perfiles Restringidos**: CRUD de perfiles infantiles
-3. **Playlists**: CRUD de listas de reproducción
-4. **Videos**: CRUD de videos y búsqueda
-5. **Acceso Perfiles Restringidos**: Endpoints para acceso mediante PIN
-
 ### Flujo de prueba recomendado
 
 1. Registra un usuario padre (Autenticación > Registro de Usuario)
@@ -157,12 +209,20 @@ La colección está organizada en 5 categorías principales:
 5. Añade videos a la playlist (Videos > Agregar Video a Playlist)
 6. Prueba el acceso con PIN (Acceso Perfiles Restringidos > Verificar PIN de Perfil)
 
-### Notas importantes
+## Buenas Prácticas de Seguridad
 
-- Los scripts de prueba de Postman guardan automáticamente IDs, tokens y PINs en variables de entorno
-- Las pruebas están encadenadas para facilitar el flujo completo sin necesidad de copiar/pegar IDs manualmente
-- Cada endpoint incluye una descripción detallada de su funcionamiento
+- **No guardar credenciales en el código**: Todas las claves de API, secretos y credenciales deben almacenarse en variables de entorno.
+- **Sanitización de entradas**: Validación de todos los datos recibidos para prevenir inyecciones.
+- **Rate limiting**: Implementar limitación de solicitudes para prevenir abusos.
+- **HTTPS**: En producción, configurar la API para que solo sea accesible mediante HTTPS.
+- **Logs de seguridad**: Mantener registros de intentos de autenticación y acciones sensibles.
 
 ## Contribución
 
-Las contribuciones son bienvenidas. Por favor, haz un fork del repositorio y crea un pull request para proponer cambios.
+Las contribuciones son bienvenidas. Por favor, sigue estos pasos:
+
+1. Haz un fork del repositorio
+2. Crea una rama para tu funcionalidad (`git checkout -b feature/nueva-funcionalidad`)
+3. Haz commit de tus cambios (`git commit -am 'Añadir nueva funcionalidad'`)
+4. Haz push a la rama (`git push origin feature/nueva-funcionalidad`)
+5. Crea un Pull Request

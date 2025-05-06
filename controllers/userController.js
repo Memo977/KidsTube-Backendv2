@@ -9,7 +9,11 @@ const Restricted_users = require("../models/restricted_usersModel");
 const { deleteSession } = require('./sessionController');
 const { sendConfirmationEmail } = require('../services/mailerSendService');
 
-// Verifica si el usuario tiene al menos 18 años
+/**
+ * Verifica si el usuario tiene al menos 18 años
+ * @param {Date} birthdate - Fecha de nacimiento
+ * @returns {Boolean} - True si tiene al menos 18 años
+ */
 const isAtLeast18YearsOld = (birthdate) => {
   const today = new Date();
   const birthdateObj = new Date(birthdate);
@@ -27,9 +31,8 @@ const isAtLeast18YearsOld = (birthdate) => {
 
 /**
  * Crea un usuario nuevo
- *
- * @param {*} req
- * @param {*} res
+ * @param {*} req - Objeto de solicitud
+ * @param {*} res - Objeto de respuesta
  */
 const userPost = async (req, res) => {
   let user = new User();
@@ -69,7 +72,6 @@ const userPost = async (req, res) => {
       // Hash de contraseña con bcrypt
       const hashedPassword = await bcrypt.hash(req.body.password, saltRounds);
       user.password = hashedPassword;
-      // Ya no necesitamos almacenar repeat_password, pero mantenemos compatibilidad
       user.repeat_password = hashedPassword;
       
       // Guarda el usuario
@@ -78,7 +80,6 @@ const userPost = async (req, res) => {
       if (savedUser.state === false) {
         try {
           await sendConfirmationEmail(savedUser);
-          console.log('Confirmation email sent to:', savedUser.email);
         } catch (emailError) {
           console.error('Error sending confirmation email:', emailError);
           // Continuamos con el proceso aunque falle el envío del email
@@ -89,7 +90,7 @@ const userPost = async (req, res) => {
         'location': `/api/users/?id=${savedUser.id}`
       }).json(savedUser);
     } catch (err) {
-      console.log('Error while saving the user', err);
+      console.error('Error while saving the user:', err);
       res.status(422).json({
         error: 'There was an error saving the user'
       });
@@ -103,9 +104,8 @@ const userPost = async (req, res) => {
 
 /** 
  * Obtiene uno o todos los usuarios
- *
- * @param {*} req
- * @param {*} res
+ * @param {*} req - Objeto de solicitud 
+ * @param {*} res - Objeto de respuesta
  */
 const userGet = (req, res) => {
   if (req.query && req.query.id) {
@@ -115,7 +115,7 @@ const userGet = (req, res) => {
         res.json(user);
       })
       .catch(err => {
-        console.log('Error while querying the user', err);
+        console.error('Error while querying the user:', err);
         res.status(404).json({ error: "User doesn't exist" });
       });
   } else {
@@ -130,12 +130,20 @@ const userGet = (req, res) => {
   }
 };
 
-// Encuentra un usuario por su email
+/**
+ * Encuentra un usuario por su email
+ * @param {string} email - Email del usuario
+ * @returns {Promise} - Promesa con el usuario encontrado
+ */
 const userGetEmail = function (email) {
   return User.findOne({ email });
 };
 
-// Confirma el email del usuario - Ahora solo actualiza el estado y retorna JSON
+/**
+ * Confirma el email del usuario
+ * @param {*} req - Objeto de solicitud
+ * @param {*} res - Objeto de respuesta 
+ */
 const confirmEmail = async (req, res) => {
   const { id } = req.query;
   
@@ -153,14 +161,14 @@ const confirmEmail = async (req, res) => {
     user.state = true;
     await user.save();
     
-    // Devolver una respuesta JSON en lugar de HTML
+    // Devolver una respuesta JSON
     return res.status(200).json({ 
       success: true, 
       message: "Email verified successfully" 
     });
 
   } catch (err) {
-    console.log('Error while confirming the email', err);
+    console.error('Error while confirming the email:', err);
     return res.status(500).json({ error: 'Internal server error' });
   }
 };

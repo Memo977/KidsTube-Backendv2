@@ -43,7 +43,7 @@ const completeProfile = async (req, res) => {
   try {
     // Verificar que el token es válido
     if (!req.user) {
-      return res.status(401).json({ error: 'Autenticación requerida' });
+      return res.status(401).json({ error: 'Authentication required' });
     }
     
     // Obtener datos del perfil del cuerpo de la solicitud
@@ -61,18 +61,18 @@ const completeProfile = async (req, res) => {
     const { tempToken, phone, verificationResult } = await generateTemporaryToken(updatedUser);
     
     if (!verificationResult.success) {
-      return res.status(500).json({ error: 'Error al enviar código de verificación' });
+      return res.status(500).json({ error: 'Error sending verification code' });
     }
     
     // Responder con el token temporal y teléfono para continuar con SMS
     res.status(200).json({ 
       tempToken,
       phone,
-      message: 'Perfil completado. Se requiere verificación SMS.' 
+      message: 'Profile completed. SMS verification required.' 
     });
   } catch (error) {
     console.error('Error al completar perfil:', error);
-    res.status(500).json({ error: 'Error al completar el perfil' });
+    res.status(500).json({ error: 'Error completing profile' });
   }
 };
 

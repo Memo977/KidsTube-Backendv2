@@ -1,4 +1,3 @@
-// services/twilioService.js
 const twilio = require('twilio');
 require('dotenv').config();
 
@@ -8,7 +7,11 @@ const client = twilio(
   process.env.TWILIO_AUTH_TOKEN
 );
 
-// Función para enviar código de verificación por SMS
+/**
+ * Envía un código de verificación por SMS
+ * @param {string|number} phoneNumber - Número de teléfono del usuario
+ * @returns {Promise<Object>} - Resultado de la operación
+ */
 const sendVerificationCode = async (phoneNumber) => {
     try {
       // Asegurar que sea una cadena de texto
@@ -19,28 +22,33 @@ const sendVerificationCode = async (phoneNumber) => {
         formattedNumber = '+' + formattedNumber;
       }
 
-    // Enviar el código de verificación
-    const verification = await client.verify.v2
-      .services(process.env.TWILIO_VERIFY_SERVICE_SID)
-      .verifications.create({
-        to: formattedNumber,
-        channel: 'sms'
-      });
+      // Enviar el código de verificación
+      const verification = await client.verify.v2
+        .services(process.env.TWILIO_VERIFY_SERVICE_SID)
+        .verifications.create({
+          to: formattedNumber,
+          channel: 'sms'
+        });
     
-    return {
-      success: true,
-      status: verification.status
-    };
-  } catch (error) {
-    console.error('Error sending verification code:', error);
-    return {
-      success: false,
-      error: error.message
-    };
-  }
+      return {
+        success: true,
+        status: verification.status
+      };
+    } catch (error) {
+      console.error('Error sending verification code:', error);
+      return {
+        success: false,
+        error: error.message
+      };
+    }
 };
 
-// Función para verificar el código recibido
+/**
+ * Verifica el código recibido
+ * @param {string|number} phoneNumber - Número de teléfono del usuario
+ * @param {string} code - Código de verificación
+ * @returns {Promise<Object>} - Resultado de la verificación
+ */
 const verifyCode = async (phoneNumber, code) => {
   try {
     // Asegurar formato internacional para el número de teléfono
@@ -72,9 +80,12 @@ const verifyCode = async (phoneNumber, code) => {
   }
 };
 
-// Función para reenviar el código de verificación
+/**
+ * Reenvía el código de verificación
+ * @param {string|number} phoneNumber - Número de teléfono del usuario
+ * @returns {Promise<Object>} - Resultado de la operación
+ */
 const resendVerificationCode = async (phoneNumber) => {
-  // Reutilizamos la función de envío original para mantener consistencia
   return sendVerificationCode(phoneNumber);
 };
 

@@ -4,8 +4,8 @@ const Video = require('../models/videoModel');
 
 /**
  * Crear una nueva playlist
- * @param {*} req 
- * @param {*} res 
+ * @param {*} req - Objeto de solicitud
+ * @param {*} res - Objeto de respuesta
  */
 const playlistPost = async (req, res) => {
     try {
@@ -40,8 +40,8 @@ const playlistPost = async (req, res) => {
 
 /**
  * Obtener todas las playlists o una específica
- * @param {*} req 
- * @param {*} res 
+ * @param {*} req - Objeto de solicitud
+ * @param {*} res - Objeto de respuesta
  */
 const playlistGet = async (req, res) => {
     try {
@@ -155,8 +155,8 @@ const playlistGet = async (req, res) => {
 
 /**
  * Actualizar una playlist
- * @param {*} req 
- * @param {*} res 
+ * @param {*} req - Objeto de solicitud
+ * @param {*} res - Objeto de respuesta
  */
 const playlistPatch = async (req, res) => {
     try {
@@ -199,8 +199,8 @@ const playlistPatch = async (req, res) => {
 
 /**
  * Eliminar una playlist
- * @param {*} req 
- * @param {*} res 
+ * @param {*} req - Objeto de solicitud
+ * @param {*} res - Objeto de respuesta
  */
 const playlistDelete = async (req, res) => {
     try {
